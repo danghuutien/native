@@ -2,20 +2,61 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react'
 import { StyleSheet, Text, View, TextInput, Button } from 'react-native';
 import axios from 'axios';
-export default function App() {
+import { StackNavigationProp } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+interface typeLogin{
+  email:string,
+  password: string,
+  device_name: string
+}
+export default function Login({ navigation }: any) {
 
   const [password, setPassword] = useState('')
+  const [errPassword, setErrPassword] = useState('')
   const [username, setUserName] = useState('')
-  const onChangeUsername = (value)=>{
+  const [errUsername, setErrUserName] = useState('')
+  const onChangeUsername = (value:string)=>{
     // console.log(e);
     setUserName(value)
+    setErrUserName('')
+
   }
-  const onChangePassword = (value)=>{
+  const onChangePassword = (value: string)=>{
     setPassword(value)
+    setErrPassword('')
+
   }
-  const login = () =>{
-    console.log(username + ' ' + password);
-    // axios.post('http://127.0.0.1:8000/')
+  const saveToken = async (token:string) => {
+    try {
+      await AsyncStorage.setItem('token', token);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const login = () => {
+    if(username.trim() == ''){
+      setErrUserName('Trường này không được để trống')
+      return
+    }else{
+      if(password.trim() == ''){
+        setErrPassword('Trường này không được để trống')
+        return
+      }
+
+    }
+    const data:typeLogin = { email: username, password : password, device_name: 'app' } 
+    axios.post('/api/login', data)
+      .then((response) => {
+        if(response.data.token != null){
+          console.log(response.data);
+          saveToken(response.data.token)
+          navigation.navigate('Home')
+
+        }
+      })
+      .catch(error => {
+        console.log(error)
+      })
   }
   return (
     <View style={styles.container}>
@@ -28,6 +69,7 @@ export default function App() {
           placeholder="username"
           
         />
+        <Text style={{color:'red', textAlign:'left'}}>{errUsername}</Text>
         <TextInput
           style={inputStyles.input}
           onChangeText={onChangePassword}
@@ -35,8 +77,10 @@ export default function App() {
           value={password}
           secureTextEntry={true}
         />
+        <Text style={{color:'red'}}>{errPassword}</Text>
+
         <StatusBar style="auto" />
-        <Button onPress={login} style = {styles.button} title='ĐĂNG NHẬP'/>
+        <Button onPress={login} title='ĐĂNG NHẬP' />
       </View>
     </View>
   );
